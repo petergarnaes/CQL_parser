@@ -55,7 +55,7 @@ fun<A> many1(parser: Parser<A>) : Parser<List<A>> = doParse {
     val a = bind(parser)
     val ass = bind(many(parser))
     // TODO prettier way???
-    var m = mutableListOf(a)
+    val m = mutableListOf(a)
     m.addAll(ass)
     returns(m.toList())
 }
@@ -72,7 +72,7 @@ fun<A,B> sepby1(parser: Parser<A>, separator: Parser<B>) : Parser<List<A>> = doP
         returns(bind(parser))
     }))
     // TODO prettier way???
-    var m = mutableListOf(a)
+    val m = mutableListOf(a)
     m.addAll(ass)
     returns(m.toList())
 }
@@ -88,7 +88,7 @@ fun<A> chainl1(parser: Parser<A>, parserFun: Parser<(A, A) -> A>) : Parser<A> = 
         val b = bind(parser)
         val res = bind(rest(f(a, b)))
         returns(res)
-    } as Parser, returns(a) as Parser)
+    }, returns(a) as Parser)
     returns(bind(rest(a)))
 }
 

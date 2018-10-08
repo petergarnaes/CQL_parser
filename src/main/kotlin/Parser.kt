@@ -4,13 +4,10 @@ class Parser<T>(val parse: (String) -> List<Pair<T,String>>) : Monad<Parser<*>, 
             parse(cs).map {
                 (f(ParserReturn, it.first) as Parser).parse(it.second)
             }.flatMap { it }
-            // TODO more concise???
         }
     }
 
     operator fun plus(parser: Parser<T>): Parser<T> = Parser { cs ->
-        System.out.println("left: "+parse(cs))
-        System.out.println("right: "+parser.parse(cs))
         listOf(parse(cs), parser.parse(cs)).flatMap { it }
     }
 }
