@@ -66,6 +66,7 @@ fun<A,B> sepbyTake2(parser1: Parser<A>, parser2: Parser<B>) : Parser<List<A>> = 
 fun<A,B> sepby1(parser: Parser<A>, separator: Parser<B>) : Parser<List<A>> = doReturning(ParserReturn) {
     val a = bind(parser)
     val ass = bind(many(doReturning(ParserReturn) {
+        System.out.println("Is this never stopping????")
         bind(separator)
         val b = bind(parser)
         returns(b)

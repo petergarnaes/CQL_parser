@@ -1,12 +1,9 @@
 class Parser<T>(val parse: (String) -> List<Pair<T,String>>) : Monad<Parser<*>, T> {
     override fun <R> bind(f: Binder<Parser<*>, T, R>): Monad<Parser<*>, R> {
         return Parser { cs ->
-            val tmp = parse(cs)
-            val tmp2 = tmp.map { ps ->
-                val parser = f(ParserReturn, ps.first) as Parser
-                parser.parse(ps.second)
-            }
-            tmp2.flatMap { it }
+            parse(cs).map {
+                (f(ParserReturn, it.first) as Parser).parse(it.second)
+            }.flatMap { it }
             // TODO more concise???
         }
     }
