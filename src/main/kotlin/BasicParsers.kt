@@ -1,5 +1,10 @@
 import java.util.*
 
+// Synonyms
+
+fun<A> doParse(c: suspend DoController<Parser<*>>.() -> Monad<Parser<*>,A>): Parser<A> =
+        doReturning(ParserReturn,c) as Parser
+
 // Basic combinators
 
 fun <T> zero() : Parser<T> = Parser { _ -> emptyList<Pair<T,String>>()}
@@ -14,16 +19,16 @@ fun parseSingleChar() : Parser<Char> = Parser {
 
 // Choice combinators
 
-fun sat(func: (Char) -> Boolean) : Parser<Char> = doReturning(ParserReturn) {
+fun sat(func: (Char) -> Boolean) : Parser<Char> = doParse {
     val c = bind(parseSingleChar())
     if(func(c)) returns(c) else zero()
-} as Parser
+}
 
 fun char(char: Char) : Parser<Char> = sat { char == it }
 
 // Recursion combinators
 
-fun string(string: String) : Parser<String> = doReturning(ParserReturn) {
+fun string(string: String) : Parser<String> = doParse {
     when {
         string.isEmpty() -> returns("")
         else -> {
@@ -32,7 +37,7 @@ fun string(string: String) : Parser<String> = doReturning(ParserReturn) {
             returns(c + cs)
         }
     }
-} as Parser
+}
 
 fun<A> choice(parser1: Parser<A>, parser2: Parser<A>) : Parser<A> = Parser { cs ->
     val res = (parser1 + parser2).parse(cs)
@@ -42,70 +47,64 @@ fun<A> choice(parser1: Parser<A>, parser2: Parser<A>) : Parser<A> = Parser { cs 
     }
 }
 
-fun<A> many(parser: Parser<A>) : Parser<List<A>> = doReturning(ParserReturn) {
+fun<A> many(parser: Parser<A>) : Parser<List<A>> = doParse {
     choice(many1(parser),returns(listOf<A>()) as Parser)
-} as Parser
+}
 
-fun<A> many1(parser: Parser<A>) : Parser<List<A>> = doReturning(ParserReturn) {
+fun<A> many1(parser: Parser<A>) : Parser<List<A>> = doParse {
     val a = bind(parser)
     val ass = bind(many(parser))
     // TODO prettier way???
     var m = mutableListOf(a)
     m.addAll(ass)
     returns(m.toList())
-} as Parser
+}
 
 // TODO this still does not work
-fun<A,B> sepby(parser1: Parser<A>, parser2: Parser<B>) : Parser<List<A>> = doReturning(ParserReturn) {
-    val c = choice(sepby1(parser1, parser2), returns(emptyList<A>()) as Parser)
-    c
-} as Parser
+fun<A,B> sepby(parser1: Parser<A>, parser2: Parser<B>) : Parser<List<A>> = doParse {
+    choice(sepby1(parser1, parser2), returns(emptyList<A>()) as Parser)
+}
 
-fun<A,B> sepbyTake2(parser1: Parser<A>, parser2: Parser<B>) : Parser<List<A>> = choice(sepby1(parser1, parser2), zero())
-
-fun<A,B> sepby1(parser: Parser<A>, separator: Parser<B>) : Parser<List<A>> = doReturning(ParserReturn) {
+fun<A,B> sepby1(parser: Parser<A>, separator: Parser<B>) : Parser<List<A>> = doParse {
     val a = bind(parser)
-    val ass = bind(many(doReturning(ParserReturn) {
-        System.out.println("Is this never stopping????")
+    val ass = bind(many(doParse {
         bind(separator)
-        val b = bind(parser)
-        returns(b)
-    } as Parser))
+        returns(bind(parser))
+    }))
     // TODO prettier way???
     var m = mutableListOf(a)
     m.addAll(ass)
     returns(m.toList())
-} as Parser
+}
 
-fun<A> chainl(parser: Parser<A>, parserFun: Parser<(A, A) -> A>, element: A) : Parser<A> = doReturning(ParserReturn) {
+fun<A> chainl(parser: Parser<A>, parserFun: Parser<(A, A) -> A>, element: A) : Parser<A> = doParse {
     choice(chainl1(parser,parserFun), returns(element) as Parser)
-} as Parser
+}
 
-fun<A> chainl1(parser: Parser<A>, parserFun: Parser<(A, A) -> A>) : Parser<A> = doReturning(ParserReturn) {
+fun<A> chainl1(parser: Parser<A>, parserFun: Parser<(A, A) -> A>) : Parser<A> = doParse {
     val a = bind(parser)
-    fun rest(a: A) : Parser<A> = choice(doReturning(ParserReturn) {
+    fun rest(a: A) : Parser<A> = choice(doParse {
         val f = bind(parserFun)
         val b = bind(parser)
-        val res = bind(rest(f(a,b)))
+        val res = bind(rest(f(a, b)))
         returns(res)
     } as Parser, returns(a) as Parser)
-    val res = bind(rest(a))
-    returns(res)
-} as Parser
+    returns(bind(rest(a)))
+}
 
 // Lexical combinators
 
-fun space() : Parser<String> = doReturning(ParserReturn){
+fun space() : Parser<String> = doParse {
     val l = bind(many(sat { it.isWhitespace() }))
     // TODO kinda ugly, can it be better? Should we drop String type and only work on char array?
     returns(Arrays.toString(l.toCharArray()))
-} as Parser
+}
 
-fun<A> token(parser: Parser<A>) : Parser<A> = doReturning(ParserReturn) {
+fun<A> token(parser: Parser<A>) : Parser<A> = doParse {
     val a = bind(parser)
     bind(space())
     returns(a)
-} as Parser
+}
 
 fun symb(s: String) : Parser<String> = token(string(s))
 
